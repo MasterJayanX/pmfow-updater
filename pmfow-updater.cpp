@@ -11,12 +11,12 @@ using namespace std;
 
 class repo {
 public:
-    repo(const string& os, const string& programpath) {
+    repo(const string& programpath) {
         // This constructor calls the loadRepos function
-        loadRepos(os, programpath);
+        loadUpdater(programpath);
     }
 
-    string repos(const string& key) const {
+    string update(const string& key) const {
         auto it = packages.find(key);
         return (it != packages.end()) ? it->second : "Package not found";
     }
@@ -25,38 +25,19 @@ private:
     // This map contains the packages for each repo
     map<string, string> packages;
 
-    void loadRepos(const string& os, const string& programpath) {
-        ifstream file;
+    void loadUpdater(const string& programpath){
+        // This function loads the updater
         string fullpath = programpath + "\\";
-        if(os == "Windows 2000"){
-            file.open(fullpath + "win2000.txt");
-        }
-        else if(os == "Windows XP" || os == "Windows XP Professional x64/Windows Server 2003"){
-            file.open(fullpath + "winxp.txt");
-        }
-        else if(os == "Windows Vista"){
-            file.open(fullpath + "winvista.txt");
-        }
-        else if(os == "Windows 7"){
-            file.open(fullpath + "win7.txt");
-        }
-        else if(os == "Windows 8" || os == "Windows 8.1"){
-            file.open(fullpath + "win8.txt");
-        }
-        else if(os == "Windows 10"){
-            file.open(fullpath + "win10.txt");
-        }
-        else{
-            cout << "Invalid OS.\n";
-        }
-        if (!file.is_open()) {
-            cerr << "Repository not found" << endl;
+        ifstream file;
+        file.open(fullpath + "updater.dat");
+        if(!file.is_open()){
+            cerr << "Error: updater.dat could not be opened.\n";
             return;
         }
         string line;
-        while (getline(file, line)) {
+        while(getline(file, line)){
             size_t delimiterPos = line.find('=');
-            if (delimiterPos != string::npos) {
+            if(delimiterPos != string::npos){
                 string key = line.substr(0, delimiterPos);
                 string value = line.substr(delimiterPos + 1);
                 packages[key] = value;
@@ -151,30 +132,7 @@ vector<string> repoDirectories(string programpath){
     return directories;
 }
 
-string definewin(string winver){
-    string file_winver;
-    if(winver == "Windows 2000"){
-        file_winver = "win2000";
-    }
-    if(winver == "Windows XP" || winver == "Windows XP Professional x64/Windows Server 2003"){
-        file_winver = "winxp";
-    }
-    else if(winver == "Windows Vista"){
-        file_winver = "winvista";
-    }
-    else if(winver == "Windows 7"){
-        file_winver = "win7";
-    }
-    else if(winver == "Windows 8" || winver == "Windows 8.1"){
-        file_winver = "win8";
-    }
-    else if(winver == "Windows 10" || winver == "Windows 11"){
-        file_winver = "win10";
-    }
-    return file_winver;
-}
-
-int main(){
+int main(int argc, char** argv){
     OSVERSIONINFOW osv;
     osv.dwOSVersionInfoSize = sizeof(OSVERSIONINFOW);
     osv.dwMajorVersion = 0, osv.dwMinorVersion = 0, osv.dwBuildNumber = 0; 
@@ -191,17 +149,36 @@ int main(){
         wget_exe = "wget";
     }
     vector<string> directories = repoDirectories(programpath);
-    string file_winver = definewin(winver);
-    string architectureFolder = (architecture == "x64") ? directories[0] : directories[1];
-    string versionFile = (architectureFolder + "/" + file_winver + ".txt");
     if(osv.dwMajorVersion >= 5){
         // Windows 2000 or later
-        system(("del " + fullpath + file_winver + ".txt").c_str());
-        system((wget_exe + " -O " + fullpath + file_winver + ".txt https://raw.githubusercontent.com/MasterJayanX/pmfow/main/" + versionFile).c_str());
-        system(("del " + fullpath + "directories.txt").c_str());
-        system((wget_exe + " -O " + fullpath + "directories.txt https://raw.githubusercontent.com/MasterJayanX/pmfow/main/directories.txt").c_str());
-        repo r(winver, programpath);
-        string package = r.repos("pmfow");
+        repo r(programpath);
+        string package;
+        bool stable = true;
+        if(argc > 1){
+            if(string(argv[1]) == "-u" || string(argv[1]) == "--unstable"){
+                stable = false;
+            }
+        }
+        if(architecture == "x64"){
+            if(stable){
+                package = r.update("pmfow64");
+            }
+            else{
+                package = r.update("pmfow-unstable64");
+            }
+        }
+        else if(architecture == "x86"){
+            if(stable){
+                package = r.update("pmfow32");
+            }
+            else{
+                package = r.update("pmfow-unstable32");
+            }
+        }
+        else{
+            cout << "Your architecture is not supported.\n";
+            return 0;
+        }
         system(("del " + fullpath + "pmfow.exe").c_str());
         system((wget_exe + " -O " + fullpath + "pmfow.exe " + package).c_str());
     }
