@@ -27,9 +27,12 @@ private:
 
     void loadUpdater(const string& programpath){
         // This function loads the updater
-        string fullpath = programpath + "\\";
+        string fullpath = programpath + "\\", fullpath2 = programpath + "\\files\\";
         ifstream file;
-        file.open(fullpath + "updater.dat");
+        file.open(fullpath2 + "updater.dat");
+        if(!file.is_open()){
+            file.open(fullpath + "updater.dat");
+        }
         if(!file.is_open()){
             cerr << "Error: updater.dat could not be opened.\n";
             return;
@@ -117,7 +120,11 @@ vector<string> repoDirectories(string programpath){
     vector<string> directories(2);
     ifstream file;
     string fullpath = programpath + "\\";
-    file.open(fullpath + "directories.txt");
+    string fullpath2 = programpath + "\\files\\";
+    file.open(fullpath2 + "directories.txt");
+    if(!file.is_open()){
+        file.open(fullpath + "directories.txt");
+    }
     if(file.is_open()){
         for(int i = 0; i < 2; i++){
             getline(file, directories[i]);
